@@ -115,9 +115,8 @@ def main(
             # Convert results to Supervision format
             detections = sv.Detections.from_ultralytics(results)
 
-
             # Draw annotations
-            annotated_image = annotation_sink.on_detections(detections=detections, image=image)
+            annotated_image = annotation_sink.on_detections(detections=detections, scene=image)
 
 
             # Speed
