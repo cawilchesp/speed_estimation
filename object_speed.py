@@ -63,10 +63,9 @@ def main(
         real_width=730,
         real_length=5000,
         region_json=f"{config.SOURCE_FOLDER}/{config.JSON_NAME}",
-        source_info=source_info
+        source_info=source_info,
+        draw_zone=True
     )
-    
-    # polygon_zone = sv.PolygonZone(polygon=zone_analysis, frame_resolution_wh=(source_info.width,source_info.height))
     
     # Start video tracking processing
     step_message(next(step_count), 'Video Tracking Started ✅')
