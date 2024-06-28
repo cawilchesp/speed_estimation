@@ -1,13 +1,10 @@
 import supervision as sv
 
 import cv2
-import json
 import torch
 import datetime
 import itertools
-import numpy as np
 from pathlib import Path
-from collections import defaultdict, deque
 
 from imutils.video import FileVideoStream, WebcamVideoStream
 
@@ -19,8 +16,6 @@ import config
 from tools.video_info import VideoInfo
 from tools.messages import source_message, progress_message, step_message
 from tools.write_data import csv_append, write_csv
-from tools.general import load_zones
-from tools.speed import ViewTransformer
 
 # For debugging
 from icecream import ic
@@ -62,10 +57,6 @@ def main(
         label=False,
         fps=False
     )
-
-    line_thickness = int(sv.calculate_optimal_line_thickness(resolution_wh=source_info.resolution_wh) * 0.5)
-    text_scale = sv.calculate_optimal_text_scale(resolution_wh=source_info.resolution_wh) * 0.5
-    label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_padding=2, text_position=sv.Position.TOP_LEFT, text_thickness=line_thickness)
 
     # Speed
     speed_sink = SpeedSink(
