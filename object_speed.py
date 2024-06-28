@@ -13,6 +13,7 @@ from imutils.video import FileVideoStream, WebcamVideoStream
 
 from sinks.model_sink import ModelSink
 from sinks.annotation_sink import AnnotationSink
+from sinks.speed_sink import SpeedSink
 
 import config
 from tools.video_info import VideoInfo
@@ -66,19 +67,16 @@ def main(
     text_scale = sv.calculate_optimal_text_scale(resolution_wh=source_info.resolution_wh) * 0.5
     label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_padding=2, text_position=sv.Position.TOP_LEFT, text_thickness=line_thickness)
 
-    # Regions
-    target_width = 730
-    target_height = 5000
-    with open(f"{config.SOURCE_FOLDER}/{config.JSON_NAME}", 'r') as json_file:
-        json_data = json.load(json_file)
-        zone_analysis = np.array(json_data[0]).astype(np.int32)
-        zone_target = np.array( [ [0, 0], [target_width, 0], [target_width, target_height], [0, target_height] ] )
-
-    polygon_zone = sv.PolygonZone(polygon=zone_analysis, frame_resolution_wh=(source_info.width,source_info.height))
-    view_transformer = ViewTransformer(source=zone_analysis, target=zone_target)
-    coordinates = defaultdict(lambda: deque(maxlen=int(source_info.fps)))
-    speeds = defaultdict(lambda: deque(maxlen=10))
-
+    # Speed
+    speed_sink = SpeedSink(
+        real_width=730,
+        real_length=5000,
+        region_json=f"{config.SOURCE_FOLDER}/{config.JSON_NAME}",
+        source_info=source_info
+    )
+    
+    # polygon_zone = sv.PolygonZone(polygon=zone_analysis, frame_resolution_wh=(source_info.width,source_info.height))
+    
     # Start video tracking processing
     step_message(next(step_count), 'Video Tracking Started ✅')
     
@@ -118,34 +116,10 @@ def main(
             # Draw annotations
             annotated_image = annotation_sink.on_detections(detections=detections, scene=image)
 
-
             # Speed
-            if len(detections) > 0:
-                points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
-                points = view_transformer.transform_points(points=points).astype(int)
-                object_labels =[]
-                if detections.tracker_id is not None:
-                    for tracker_id, [x, y] in zip(detections.tracker_id, points):
-                        coordinates[tracker_id].append([frame_number, x, y])
-                        if len(coordinates[tracker_id]) < source_info.fps / 2:
-                            object_labels.append(f"#{tracker_id}")
-                        else:
-                            t_0, x_0, y_0 = coordinates[tracker_id][0]
-                            t_1, x_1, y_1 = coordinates[tracker_id][-1]
-
-                            distance = np.sqrt((y_1-y_0)**2 + (x_1-x_0)**2) / 100
-                            time_diff = (t_1 - t_0) / source_info.fps
-
-                            speeds[tracker_id].append(distance / time_diff * 3.6)
-
-                            mean_speed = sum(speeds[tracker_id]) / len(speeds[tracker_id])
-
-                            object_labels.append(f"#{tracker_id} {int(mean_speed)} Km/h")
-
-                    annotated_image = label_annotator.annotate(
-                        scene=annotated_image,
-                        detections=detections,
-                        labels=object_labels )
+            transformed_points = speed_sink.transform_points(detections=detections)
+            object_labels = speed_sink.speed_estimation(detections=detections, points=transformed_points, frame_number=frame_number)
+            annotated_image = speed_sink.speed_annotation(detections=detections, scene=annotated_image, object_labels=object_labels)
 
             # Save results
             output_writer.write(annotated_image)
