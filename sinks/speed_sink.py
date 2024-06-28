@@ -12,14 +12,15 @@ class SpeedSink:
         real_width: float = None,
         real_length: float = None,
         region_json: str = None,
-        source_info = None
+        source_info = None,
+        draw_zone: bool = False
     ) -> None:
         with open(region_json, 'r') as json_file:
             json_data = json.load(json_file)
-            zone_analysis = np.array(json_data[0]).astype(np.int32)
-        zone_target = np.array( [ [0, 0], [real_width, 0], [real_width, real_length], [0, real_length] ] )
-        source = zone_analysis.astype(np.float32)
-        target = zone_target.astype(np.float32)
+            self.zone_analysis = np.array(json_data[0]).astype(np.int32)
+        self.zone_target = np.array( [ [0, 0], [real_width, 0], [real_width, real_length], [0, real_length] ] )
+        source = self.zone_analysis.astype(np.float32)
+        target = self.zone_target.astype(np.float32)
         self.m = cv2.getPerspectiveTransform(source, target)
 
         self.source_info = source_info
@@ -29,6 +30,7 @@ class SpeedSink:
         line_thickness = int(sv.calculate_optimal_line_thickness(resolution_wh=source_info.resolution_wh) * 0.5)
         text_scale = sv.calculate_optimal_text_scale(resolution_wh=source_info.resolution_wh) * 0.5
         self.label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_padding=2, text_position=sv.Position.TOP_LEFT, text_thickness=line_thickness)
+        self.draw_zone = draw_zone
 
 
     def transform_points(self, detections: sv.Detections) -> np.ndarray:
@@ -63,6 +65,14 @@ class SpeedSink:
 
 
     def speed_annotation(self, detections: sv.Detections, scene: np.array, object_labels: list):
+        if self.draw_zone:
+            scene = sv.draw_polygon(
+                scene=scene,
+                polygon=self.zone_analysis,
+                color=sv.Color.RED,
+                thickness=2,
+            )
+
         if detections.tracker_id is not None:
             scene = self.label_annotator.annotate(
                 scene=scene,
