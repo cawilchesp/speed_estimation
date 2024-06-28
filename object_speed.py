@@ -28,6 +28,9 @@ def main(
     class_filter: list[int] = None,
     image_size: int = 640,
     confidence: int = 0.5,
+    real_width: int = 100,
+    real_length: int = 100,
+    region_json: str = None
 ) -> None:
     # Initialize video source
     source_info, source_flag = VideoInfo.get_source_info(source)
@@ -60,9 +63,9 @@ def main(
 
     # Speed
     speed_sink = SpeedSink(
-        real_width=730,
-        real_length=5000,
-        region_json=f"{config.SOURCE_FOLDER}/{config.JSON_NAME}",
+        real_width=real_width,
+        real_length=real_length,
+        region_json=region_json,
         source_info=source_info,
         draw_zone=True
     )
@@ -149,4 +152,7 @@ if __name__ == "__main__":
         class_filter=config.CLASS_FILTER,
         image_size=config.IMAGE_SIZE,
         confidence=config.CONFIDENCE,
+        real_width=config.REAL_WIDTH,
+        real_length=config.REAL_HEIGHT,
+        region_json=f"{config.SOURCE_FOLDER}/{config.JSON_NAME}"
     )
