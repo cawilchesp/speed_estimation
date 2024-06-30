@@ -132,6 +132,7 @@ def main(
 
     except KeyboardInterrupt:
         step_message(next(step_count), 'End of Video ✅')
+        
     step_message(next(step_count), 'Saving Detections in CSV file ✅')
     write_csv(f"{output}.csv", output_data)
     
